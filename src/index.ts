@@ -7,12 +7,18 @@ import userRoutes from './routes/userRoutes';
 import authRoutes from './routes/authRoutes';
 import faqRoutes from './routes/faqRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
-
+import cors from 'cors';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 5000;
+
+// Membuka gerbang khusus untuk Next.js 
+app.use(cors({
+    origin: 'http://localhost:3000',
+    credentials: true // Diaktifkan agar token autentikasi/cookie bisa lewat
+}));
 
 app.use(express.json());
 app.use(catatLog);

@@ -65,7 +65,7 @@ export const registerUser = async (req: Request, res: Response): Promise<any> =>
 
 // FUNGSI LOGIN (Pencocokan Hashed Password)
 export const loginUser = async (req: Request, res: Response): Promise<any> => {
-    const { email, password } = req.body;
+    const { email, password, platform } = req.body;
     
     if (!email || !password) {
         return res.status(400).json({ success: false, message: "Email dan password wajib diisi!" });
@@ -86,6 +86,20 @@ export const loginUser = async (req: Request, res: Response): Promise<any> => {
             return res.status(401).json({ success: false, message: "Password salah!" });
         }
 
+        if (platform === 'web' && user.role !== 'admin') {
+            return res.status(403).json({ 
+            status: 'error', 
+            message: "Halaman ini khusus Admin! Silahkan login melalui aplikasi." 
+            });
+        }
+
+        if (platform === 'mobile' && user.role !== 'investor') {
+            return res.status(403).json({ 
+            status: 'error', 
+            message: "Akses ditolak. Akun admin tidak dapat digunakan di aplikasi investor." 
+            });
+        }
+        
         const tokenSecret = process.env.JWT_SECRET || 'rahasia_negara_finexa_2026';
         const token = jwt.sign(
             { id_user: user.id_user, role: user.role },
@@ -107,5 +121,43 @@ export const loginUser = async (req: Request, res: Response): Promise<any> => {
     } catch (error) {
         console.error("Error saat login:", error);
         return res.status(500).json({ success: false, message: "Terjadi kesalahan pada database." });
+    }
+};
+
+export const logout = async (req: Request, res: Response): Promise<any> => {
+    try {
+        //Tangkap token dari header yang dikirim oleh frontend (Web/Mobile)
+        const authHeader = req.headers.authorization;
+        const token = authHeader && authHeader.split(' ')[1]; // Memisahkan kata "Bearer " dari isi tokennya
+
+        if (!token) {
+            return res.status(400).json({ 
+                status: 'error', 
+                message: 'Token tidak ditemukan. Anda mungkin sudah logout.' 
+            });
+        }
+
+        // Eksekusi query penghancuran token di tabel personal_access_tokens
+        const [result]: any = await db.query(
+            'DELETE FROM personal_access_tokens WHERE token = ?', 
+            [token]
+        );
+
+        // (Opsional) Cek apakah token benar-benar ada dan terhapus
+        if (result.affectedRows === 0) {
+            console.warn("Token tidak ditemukan di database saat mencoba logout.");
+        }
+
+        return res.status(200).json({ 
+            status: 'success', 
+            message: 'Berhasil logout, akses token telah dihancurkan permanen.' 
+        });
+
+    } catch (error) {
+        console.error("Error Logout:", error);
+        return res.status(500).json({ 
+            status: 'error', 
+            message: "Terjadi kesalahan internal saat memproses logout." 
+        });
     }
 };
