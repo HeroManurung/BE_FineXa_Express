@@ -1,109 +1,61 @@
 import { Request, Response } from 'express';
 import db from '../config/database';
 
-export const getDashboardStats = async (req: Request, res: Response): Promise<any> => {
+export const getDashboardData = async (req: Request, res: Response): Promise<any> => {
     try {
-        // 1. HITUNG TOTAL VIEWS (Dari tabel faq_logs)
-        const [viewsData]: any = await db.query('SELECT COUNT(id) as total FROM faq_logs');
-        const totalViews = viewsData[0].total;
-        
-        // 2. HITUNG TOTAL LOGIN (7 hari terakhir, tanpa batasan distinct)
-        const [activeUsersData]: any = await db.query(
-            'SELECT COUNT(id) as total FROM login_logs WHERE created_at >= NOW() - INTERVAL 7 DAY'
+        const [usersResult]: any = await db.query('SELECT COUNT(*) as total FROM users');
+        const totalUsers = usersResult[0].total;
+
+        const [sessionsResult]: any = await db.query(
+            'SELECT COUNT(*) as total FROM login_logs WHERE MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())'
         );
-        const activeUsers = activeUsersData[0].total;
+        const activeSessions = sessionsResult[0].total;
 
-        // 3. HITUNG RATA-RATA ENGAGEMENT
-        // Ambil semua FAQ yang pernah di-klik, hitung persentasenya
-        const [allContentEngagement]: any = await db.query(
-            'SELECT faq_id, COUNT(id) as views FROM faq_logs GROUP BY faq_id'
-        );
+        const [faqsResult]: any = await db.query("SELECT COUNT(*) as total FROM faqs WHERE status = 'published'");
+        const totalFaqs = faqsResult[0].total;
 
-        let avgEngagement = 0;
-        if (allContentEngagement.length > 0 && totalViews > 0) {
-            // Kalkulasi persentase masing-masing FAQ dan jumlahkan (reduce)
-            const totalPercent = allContentEngagement.reduce((sum: number, item: any) => {
-                return sum + ((item.views / totalViews) * 100);
-            }, 0);
-            // Hitung rata-rata dan bulatkan 1 desimal
-            avgEngagement = Number((totalPercent / allContentEngagement.length).toFixed(1));
-        }
-
-        // 4. AMBIL TOP 5 KONTEN UNTUK TABEL BAWAH
-        const [topContentData]: any = await db.query(`
-            SELECT faqs.pertanyaan as title, COUNT(faq_logs.id) as views
-            FROM faq_logs
-            JOIN faqs ON faq_logs.faq_id = faqs.id_faq
-            GROUP BY faqs.id_faq, faqs.pertanyaan
-            ORDER BY views DESC
-            LIMIT 5
-        `);
-
-        // Format hasil Top 5 dan tambahkan kalkulasi engagement
-        const topContent = topContentData.map((item: any) => {
-            const engagement = totalViews > 0 ? ((item.views / totalViews) * 100) : 0;
-            return {
-                title: item.title,
-                views: item.views,
-                engagement: Number(engagement.toFixed(1))
-            };
+        const [riskResult]: any = await db.query('SELECT role, COUNT(*) as total FROM users GROUP BY role');
+        const pieData = riskResult.map((item: any) => {
+            let color = '#3B82F6';
+            const roleName = item.role.toLowerCase();
+            if (roleName === 'moderat') color = '#10B981';
+            if (roleName === 'agresif') color = '#F59E0B';
+            if (roleName === 'admin') color = '#8B5CF6';
+            const percentage = totalUsers > 0 ? Math.round((item.total / totalUsers) * 100) : 0;
+            return { name: item.role.charAt(0).toUpperCase() + item.role.slice(1), value: percentage, color };
         });
 
-        // 5. HITUNG PERTUMBUHAN MINGGUAN (GROWTH)
-        
-        // a. Pertumbuhan Views
-        const [viewsMingguIniData]: any = await db.query(
-            'SELECT COUNT(id) as total FROM faq_logs WHERE created_at >= NOW() - INTERVAL 7 DAY'
+        const [recentUsersResult]: any = await db.query(
+            'SELECT id_user as id, nama_lengkap as name, email, role as riskProfile, created_at as joinDate FROM users ORDER BY created_at DESC LIMIT 4'
         );
-        const viewsMingguIni = viewsMingguIniData[0].total;
 
-        const [viewsMingguLaluData]: any = await db.query(
-            'SELECT COUNT(id) as total FROM faq_logs WHERE created_at >= NOW() - INTERVAL 14 DAY AND created_at < NOW() - INTERVAL 7 DAY'
-        );
-        const viewsMingguLalu = viewsMingguLaluData[0].total;
+        // --- TAMBAHAN UNTUK GRAFIK PERTUMBUHAN ASLI ---
+        const [growthResult]: any = await db.query(`
+            SELECT MONTH(created_at) as month, COUNT(*) as users
+            FROM users
+            WHERE YEAR(created_at) = YEAR(CURRENT_DATE())
+            GROUP BY MONTH(created_at)
+            ORDER BY MONTH(created_at)
+        `);
         
-        let viewsGrowth = 0;
-        if (viewsMingguLalu > 0) {
-            viewsGrowth = Number((((viewsMingguIni - viewsMingguLalu) / viewsMingguLalu) * 100).toFixed(1));
-        } else if (viewsMingguIni > 0) {
-            viewsGrowth = 100; 
-        }
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+        const lineData = growthResult.map((item: any) => ({
+            month: monthNames[item.month - 1],
+            users: item.users
+        }));
 
-        // b. Pertumbuhan Users/Login
-        const usersMingguIni = activeUsers; 
-        const [usersMingguLaluData]: any = await db.query(
-            'SELECT COUNT(id) as total FROM login_logs WHERE created_at >= NOW() - INTERVAL 14 DAY AND created_at < NOW() - INTERVAL 7 DAY'
-        );
-        const usersMingguLalu = usersMingguLaluData[0].total;
-        
-        let usersGrowth = 0;
-        if (usersMingguLalu > 0) {
-            usersGrowth = Number((((usersMingguIni - usersMingguLalu) / usersMingguLalu) * 100).toFixed(1));
-        } else if (usersMingguIni > 0) {
-            usersGrowth = 100;
-        }
-
-        // Pertumbuhan engagement kita selaraskan dengan views sesuai kodemu
-        const engagementGrowth = viewsGrowth; 
-
-        // 6. BUNGKUS DAN KIRIM KE REACT (Struktur JSON persis seperti kodemu)
         return res.status(200).json({
-            status: 'success',
+            success: true,
             data: {
-                stats: {
-                    total_views: totalViews,
-                    active_users: activeUsers,
-                    avg_engagement: avgEngagement,
-                    views_growth: viewsGrowth,
-                    users_growth: usersGrowth,
-                    engagement_growth: engagementGrowth
-                },
-                top_content: topContent
+                metrics: { totalUsers, activeSessions, totalFaqs },
+                pieData,
+                recentUsers: recentUsersResult,
+                lineData // Data grafik dikirim ke frontend
             }
         });
 
     } catch (error) {
-        console.error("Error Admin Analytics:", error);
-        return res.status(500).json({ status: 'error', message: "Terjadi kesalahan saat menghitung statistik." });
+        console.error("Error get dashboard data:", error);
+        return res.status(500).json({ success: false, message: "Terjadi kesalahan server." });
     }
 };

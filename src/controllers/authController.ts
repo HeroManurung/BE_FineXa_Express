@@ -103,7 +103,13 @@ export const loginUser = async (req: Request, res: Response): Promise<any> => {
         // Catat waktu login terbaru ke database
         await db.query(
             'UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id_user = ?',
-            [user.id_user] // Catatan: Sesuaikan 'user.id_user' dengan nama variabel user di dalam fungsi login-mu
+            [user.id_user]   
+        );
+
+        // Catat log sesi ke tabel login_logs (CCTV)
+        await db.query(
+            'INSERT INTO login_logs (user_id, created_at, updated_at) VALUES (?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+            [user.id_user]
         );
         
         const tokenSecret = process.env.JWT_SECRET || 'rahasia_negara_finexa_2026';
