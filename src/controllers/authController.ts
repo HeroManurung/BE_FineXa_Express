@@ -39,8 +39,8 @@ export const registerUser = async (req: Request, res: Response): Promise<any> =>
         // 3. Simpan password yang SUDAH dienkripsi ke database
         const roleUser = role || 'investor';
         const [result]: any = await db.query(
-            'INSERT INTO users (nama_lengkap, email, password, role) VALUES (?, ?, ?, ?)',
-            [nama_lengkap, email, hashedPassword, roleUser]
+            'INSERT INTO users (nama_lengkap, email, password, role, created_at, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+            [nama_lengkap, email, hashedPassword, role || 'investor']
         );
 
         return res.status(201).json({ 
@@ -99,6 +99,12 @@ export const loginUser = async (req: Request, res: Response): Promise<any> => {
             message: "Akses ditolak. Akun admin tidak dapat digunakan di aplikasi investor." 
             });
         }
+
+        // Catat waktu login terbaru ke database
+        await db.query(
+            'UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id_user = ?',
+            [user.id_user] // Catatan: Sesuaikan 'user.id_user' dengan nama variabel user di dalam fungsi login-mu
+        );
         
         const tokenSecret = process.env.JWT_SECRET || 'rahasia_negara_finexa_2026';
         const token = jwt.sign(

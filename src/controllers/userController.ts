@@ -6,7 +6,7 @@ export const getAllUsers = async (req: Request, res: Response): Promise<any> => 
     try {
         // Kita ambil data user, TAPI kolom password tidak diikutkan agar aman!
         const [users]: any = await db.query(
-            'SELECT id_user, nama_lengkap, email, role FROM users'
+            'SELECT id_user, nama_lengkap, email, role, last_login_at, created_at, updated_at FROM users'
         );
 
         return res.status(200).json({
