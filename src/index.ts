@@ -6,7 +6,7 @@ import catatLog from './middlewares/logMiddleware';
 import userRoutes from './routes/userRoutes';
 import authRoutes from './routes/authRoutes';
 import faqRoutes from './routes/faqRoutes';
-import analyticsRoutes from './routes/analyticsRoutes';
+import dashboardRoutes from './routes/dashboardRoutes';
 import cors from 'cors';
 
 dotenv.config();
@@ -30,7 +30,7 @@ app.get('/', (req: Request, res: Response) => {
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/faq', faqRoutes);
-app.use('/api/analytics', analyticsRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 
 

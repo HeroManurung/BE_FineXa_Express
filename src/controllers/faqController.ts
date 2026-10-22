@@ -26,7 +26,7 @@ export const createFaq = async (req: Request, res: Response): Promise<any> => {
         const finalStatus = status || 'published';
         
         await db.query(
-            'INSERT INTO faqs (kategori, pertanyaan, jawaban, status) VALUES (?, ?, ?, ?)',
+            'INSERT INTO faqs (kategori, pertanyaan, jawaban, status, created_at, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
             [kategori, pertanyaan, jawaban, finalStatus]
         );
         return res.status(201).json({ success: true, message: "FAQ berhasil ditambahkan!" });
