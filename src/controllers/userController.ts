@@ -1,13 +1,10 @@
 import { Request, Response } from 'express';
-import db from '../config/database';
+import UserModel from '../models/UserModel';
 
 // FUNGSI MENGAMBIL SEMUA USER (Khusus Admin)
 export const getAllUsers = async (req: Request, res: Response): Promise<any> => {
     try {
-        // Kita ambil data user, TAPI kolom password tidak diikutkan agar aman!
-        const [users]: any = await db.query(
-            'SELECT id_user, nama_lengkap, email, role, last_login_at, created_at, updated_at FROM users'
-        );
+        const users = await UserModel.getAll();
 
         return res.status(200).json({
             success: true,
@@ -23,29 +20,23 @@ export const getAllUsers = async (req: Request, res: Response): Promise<any> => 
     }
 };
 
-
 // FUNGSI UPDATE (Mengubah nama atau role user)
 export const updateUser = async (req: Request, res: Response): Promise<any> => {
-    const { id } = req.params; // Menangkap ID dari URL
-    const { nama_lengkap, role } = req.body; // Menangkap data baru dari body Postman
+    // Tambahkan 'as string' agar terhindar dari error tipe data TypeScript
+    const id = req.params.id as string; 
+    const { nama_lengkap, role } = req.body; 
 
     try {
-        // 1. Pastikan user yang mau diupdate itu ada di database
-        const [existingUser]: any = await db.query('SELECT * FROM users WHERE id_user = ?', [id]);
+        const existingUser = await UserModel.getById(id);
         
-        if (existingUser.length === 0) {
+        if (!existingUser) {
             return res.status(404).json({ success: false, message: "User tidak ditemukan!" });
         }
 
-        // 2. Jika ada field yang kosong, gunakan data lama agar tidak tertimpa NULL
-        const updatedNama = nama_lengkap || existingUser[0].nama_lengkap;
-        const updatedRole = role || existingUser[0].role;
+        const updatedNama = nama_lengkap || existingUser.nama_lengkap;
+        const updatedRole = role || existingUser.role;
 
-        // 3. Eksekusi query UPDATE
-        await db.query(
-            'UPDATE users SET nama_lengkap = ?, role = ? WHERE id_user = ?',
-            [updatedNama, updatedRole, id]
-        );
+        await UserModel.update(id, updatedNama, updatedRole);
 
         return res.status(200).json({
             success: true,
@@ -59,18 +50,17 @@ export const updateUser = async (req: Request, res: Response): Promise<any> => {
 
 // FUNGSI DELETE (Menghapus user dari sistem)
 export const deleteUser = async (req: Request, res: Response): Promise<any> => {
-    const { id } = req.params;
+    // Tambahkan 'as string'
+    const id = req.params.id as string; 
 
     try {
-        // 1. Pastikan user yang mau dihapus itu ada
-        const [existingUser]: any = await db.query('SELECT * FROM users WHERE id_user = ?', [id]);
+        const existingUser = await UserModel.getById(id);
         
-        if (existingUser.length === 0) {
+        if (!existingUser) {
             return res.status(404).json({ success: false, message: "User tidak ditemukan!" });
         }
 
-        // 2. Eksekusi query DELETE
-        await db.query('DELETE FROM users WHERE id_user = ?', [id]);
+        await UserModel.delete(id);
 
         return res.status(200).json({
             success: true,

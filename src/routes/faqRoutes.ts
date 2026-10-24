@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAllFaqs, createFaq, updateFaq, deleteFaq } from '../controllers/faqController';
+import { getAllFaqs, createFaq, updateFaq, deleteFaq, recordFaqView } from '../controllers/faqController';
 import { cekLogin, cekAdmin } from '../middlewares/authMiddleware'; // Import 2 satpam
 
 const router = Router();
@@ -11,5 +11,8 @@ router.get('/', cekLogin, getAllFaqs);
 router.post('/', cekAdmin, createFaq);
 router.put('/:id', cekAdmin, updateFaq);
 router.delete('/:id', cekAdmin, deleteFaq);
+
+// Route faq_logs
+router.post('/log', recordFaqView);
 
 export default router;
