@@ -6,9 +6,17 @@ import AuthModel from '../models/AuthModel';
 // FUNGSI REGISTER (Dengan Enkripsi Password)
 export const registerUser = async (req: Request, res: Response): Promise<any> => {
     const { nama_lengkap, email, password, role } = req.body;
-    
+
     if (!nama_lengkap || !email || !password) {
         return res.status(400).json({ success: false, message: "Nama lengkap, email, dan password wajib diisi!" });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)){
+        return res.status(400).json({
+            succes: false,
+            message: "format emmail tidak valid! pastikan menggunakan @ dan . contoh investor@mail.com"
+        })
     }
 
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[~`!@#$%^=&_>,.</?''"":;}{|]).{8,}$/;
