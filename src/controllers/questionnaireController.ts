@@ -31,7 +31,8 @@ export const submitQuestionnaire = async (req: Request, res: Response): Promise<
         const ragResponse = await fetch(`${process.env.FLASK_API_URL}/generate-advice`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ risk_profile: profilRisiko })
+            body: JSON.stringify({ risk_profile: profilRisiko }),
+            signal: AbortSignal.timeout(60000),
         });
         const ragData = await ragResponse.json();
 
