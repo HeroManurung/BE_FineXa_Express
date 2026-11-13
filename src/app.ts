@@ -8,6 +8,7 @@ import authRoutes from './routes/authRoutes';
 import questionnaireRoutes from './routes/questionnaireRoutes';
 import assetRoutes from './routes/assetRoutes';
 import passwordResetRoutes from './routes/passwordResetRoutes';
+import berandaMobileRoute from './routes/BerandaMobileRoute';
 
 const app = express();
 
@@ -27,6 +28,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/mobile/questionnaire', questionnaireRoutes);
 app.use('/api/assets', assetRoutes);
 app.use('/api/password', passwordResetRoutes);
-
+app.use('/api/beranda', berandaMobileRoute);
 
 export default app;
