@@ -4,7 +4,7 @@ class UserModel {
     // Mengambil semua user (tanpa password untuk keamanan)
     static async getAll() {
         const [rows]: any = await db.query(
-            'SELECT id_user, nama_lengkap, email, role, last_login_at, created_at, updated_at FROM users'
+            'SELECT id_user, nama_lengkap, email, role, last_login_at, created_at, updated_at, no_telepon, lokasi, tanggal_lahir FROM users'
         );
         return rows;
     }
@@ -15,11 +15,11 @@ class UserModel {
         return rows.length > 0 ? rows[0] : null;
     }
 
-    // Memperbarui data user
-    static async update(id: string, namaLengkap: string, role: string) {
+    // Memperbarui data profil user lengkap dengan email
+    static async update(id: string, namaLengkap: string, email: string, noTelepon: string, lokasi: string, tanggal_lahir: string) {
         await db.query(
-            'UPDATE users SET nama_lengkap = ?, role = ? WHERE id_user = ?',
-            [namaLengkap, role, id]
+            'UPDATE users SET nama_lengkap = ?, email = ?, no_telepon = ?, lokasi = ?, tanggal_lahir = ? WHERE id_user = ?',
+            [namaLengkap, email, noTelepon, lokasi, tanggal_lahir, id]
         );
     }
 
