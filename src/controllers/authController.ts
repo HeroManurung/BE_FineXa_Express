@@ -37,14 +37,31 @@ export const registerUser = async (req: Request, res: Response): Promise<any> =>
         // 2. ENKRIPSI PASSWORD (Salt factor = 10)
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // 3. Simpan user ke database via Model
+      // 3. Simpan user ke database via Model
         const roleUser = role || 'investor';
         const newUserId = await AuthModel.createUser(nama_lengkap, email, hashedPassword, roleUser);
+
+        // 4. Catat aktivitas & generate token JWT agar user bisa langsung auto-login
+        await AuthModel.updateLastLogin(newUserId);
+        await AuthModel.createLoginLog(newUserId);
+
+        const tokenSecret = process.env.JWT_SECRET || 'rahasia_negara_finexa_2026';
+        const token = jwt.sign(
+            { id_user: newUserId, role: roleUser },
+            tokenSecret,
+            { expiresIn: '1d' }
+        );
 
         return res.status(201).json({ 
             success: true, 
             message: "Registrasi akun FineXa berhasil!", 
-            data: { id_user: newUserId, nama_lengkap, email, role: roleUser }
+            data: { 
+                id_user: newUserId, 
+                nama_lengkap, 
+                email, 
+                role: roleUser,
+                token: token
+            }
         });
 
     } catch (error) {
