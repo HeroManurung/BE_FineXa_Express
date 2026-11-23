@@ -25,13 +25,22 @@ export const requestPasswordReset = async (req: Request, res: Response): Promise
         const token = Math.floor(100000 + Math.random() * 900000).toString();
         await PasswordResetModel.saveToken(email, token);
 
+        console.log("KODE OTP DEMO:", token);
+
         const transporter = nodemailer.createTransport({
-            service: 'gmail',
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
             auth: {
                 user: 'hermanvro6@gmail.com', 
                 pass: 'xpwuszupdxgfrjse' 
+            },
+            tls: {
+                rejectUnauthorized: false
             }
-        });
+        } as any);
 
         const mailOptions = {
             from: '"FineXa Security" <hermanvro6@gmail.com>',
@@ -48,9 +57,10 @@ export const requestPasswordReset = async (req: Request, res: Response): Promise
         });
 
     } catch (error: any) {
+        console.error("DETAIL ERROR NODEMAILER:", error);
         res.status(500).json({
             success: false,
-            message: "Gagal mengirim email.",
+            message: "Gagal mengirim email: " + error.message,
             error: error.message
         });
     }
