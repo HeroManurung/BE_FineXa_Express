@@ -6,9 +6,11 @@ dotenv.config();
 // Membuat koneksi ke database
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
+    port: Number(process.env.DB_PORT) || 3306,
     user: process.env.DB_USER,
     password: process.env.DB_PASS,
-    database: process.env.DB_NAME
+    database: process.env.DB_NAME,
+    ssl: process.env.DB_PORT ? { rejectUnauthorized: false } : undefined
 });
 
 // Mengecek apakah koneksi berhasil
